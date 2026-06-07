@@ -26,7 +26,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         setProjects(storedProjects);
         setDarkMode(settings.darkMode);
       })
-      .catch(() => setError('SofaTonic recovered from a local data loading problem.'))
+      .catch(() => setError('SolfaTonic recovered from a local data loading problem.'))
       .finally(() => setLoading(false));
   }, []);
 

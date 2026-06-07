@@ -61,7 +61,7 @@ export function Dashboard({ onCreate, onEdit, onOpen, onAbout, onHelp }: Props) 
         <section className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
           <BookOpen className="mx-auto mb-3 text-slate-400" size={36} />
           <h2 className="text-lg font-bold">No projects yet</h2>
-          <p className="mt-1 text-sm text-slate-500">Start a choir sheet and SofaTonic will save it offline.</p>
+          <p className="mt-1 text-sm text-slate-500">Start a choir sheet and SolfaTonic will save it offline.</p>
           <Button onClick={onCreate} className="mt-4">
             <Plus size={18} /> Create project
           </Button>

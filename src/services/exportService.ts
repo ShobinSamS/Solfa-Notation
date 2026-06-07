@@ -6,7 +6,7 @@ import { jsPDF } from 'jspdf';
 import type { ChoirProject } from '../types/project';
 
 function fileSafeTitle(project: ChoirProject): string {
-  return `${project.title || 'sofatonic-score'}`.replace(/[^a-z0-9-]+/gi, '-').replace(/^-|-$/g, '');
+  return `${project.title || 'solfatonic-score'}`.replace(/[^a-z0-9-]+/gi, '-').replace(/^-|-$/g, '');
 }
 
 async function capturePage(page: HTMLElement, pixelRatio: number): Promise<string> {
@@ -93,7 +93,7 @@ export async function exportProjectPdf(project: ChoirProject, pages: HTMLElement
   }
   const fileName = `${fileSafeTitle(project)}.pdf`;
   if (Capacitor.isNativePlatform()) {
-    await saveOrShareDataUrl(fileName, doc.output('datauristring'), 'Export SofaTonic PDF');
+    await saveOrShareDataUrl(fileName, doc.output('datauristring'), 'Export SolfaTonic PDF');
     return;
   }
 
@@ -109,7 +109,7 @@ export async function exportProjectPng(project: ChoirProject, pages: HTMLElement
   try {
     for (let index = 0; index < exportDom.pages.length; index += 1) {
       const image = await capturePage(exportDom.pages[index], 3);
-      await saveOrShareDataUrl(`${fileSafeTitle(project)}-page-${index + 1}.png`, image, 'Export SofaTonic PNG');
+      await saveOrShareDataUrl(`${fileSafeTitle(project)}-page-${index + 1}.png`, image, 'Export SolfaTonic PNG');
     }
   } finally {
     exportDom.cleanup();

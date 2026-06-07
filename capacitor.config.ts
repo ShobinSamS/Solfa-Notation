@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.sofatonic.app',
-  appName: 'SofaTonic',
+  appId: 'com.solfatonic.app',
+  appName: 'SolfaTonic',
   webDir: 'dist',
   bundledWebRuntime: false,
   plugins: {

@@ -1,6 +1,6 @@
 import type { FontTarget, VoiceKey } from '../types/project';
 
-export const APP_NAME = 'SofaTonic';
+export const APP_NAME = 'SolfaTonic';
 export const MAX_BLOCKS_PER_PAGE = 2;
 
 export const SCALES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];

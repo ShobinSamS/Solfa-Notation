@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SofaTonic</string>
-    <string name="title_activity_main">SofaTonic</string>
-    <string name="package_name">com.sofatonic.app</string>
-    <string name="custom_url_scheme">com.sofatonic.app</string>
+    <string name="app_name">SolfaTonic</string>
+    <string name="title_activity_main">SolfaTonic</string>
+    <string name="package_name">com.solfatonic.app</string>
+    <string name="custom_url_scheme">com.solfatonic.app</string>
 </resources>

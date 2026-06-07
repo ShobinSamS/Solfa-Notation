@@ -1,6 +1,6 @@
-# SofaTonic
+# SolfaTonic
 
-SofaTonic is an offline-first Tonic Sol-fa SATB choir notation editor for church choirs and music teams. It runs as a Vite React web app and is packaged as an Android APK with Capacitor.
+SolfaTonic is an offline-first Tonic Sol-fa SATB choir notation editor for church choirs and music teams. It runs as a Vite React web app and is packaged as an Android APK with Capacitor.
 
 ## Features
 

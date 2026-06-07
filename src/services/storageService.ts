@@ -2,13 +2,13 @@ import localforage from 'localforage';
 import type { ChoirProject } from '../types/project';
 import { normalizeProject } from '../utils/projectModel';
 
-const PROJECTS_KEY = 'sofatonic-projects-v1';
-const SETTINGS_KEY = 'sofatonic-settings-v1';
+const PROJECTS_KEY = 'solfatonic-projects-v1';
+const SETTINGS_KEY = 'solfatonic-settings-v1';
 
 localforage.config({
-  name: 'SofaTonic',
+  name: 'SolfaTonic',
   storeName: 'offline_projects',
-  description: 'Offline project storage for SofaTonic choir notation files.'
+  description: 'Offline project storage for SolfaTonic choir notation files.'
 });
 
 export type AppSettings = {

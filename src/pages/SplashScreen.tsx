@@ -9,8 +9,8 @@ export function SplashScreen() {
         transition={{ duration: 0.7 }}
         className="text-center"
       >
-        <img src="/icons/sofatonic.svg" alt="" className="mx-auto mb-5 h-24 w-24 rounded-3xl shadow-2xl" />
-        <h1 className="text-4xl font-black">SofaTonic</h1>
+        <img src="/icons/solfatonic.svg" alt="" className="mx-auto mb-5 h-24 w-24 rounded-3xl shadow-2xl" />
+        <h1 className="text-4xl font-black">SolfaTonic</h1>
         <p className="mt-2 text-sm text-slate-300">Tonic Sol-fa for SATB choirs</p>
         <motion.div
           className="mx-auto mt-8 h-1 w-40 rounded-full bg-slate-700"

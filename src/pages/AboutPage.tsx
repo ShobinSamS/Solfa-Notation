@@ -8,9 +8,9 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
       <Button variant="ghost" onClick={onBack}>
         <ArrowLeft size={18} /> Back
       </Button>
-      <h1 className="mt-4 text-2xl font-black">About SofaTonic</h1>
+      <h1 className="mt-4 text-2xl font-black">About SolfaTonic</h1>
       <p className="mt-3 text-slate-600 dark:text-slate-300">
-        SofaTonic is an offline-first tonic sol-fa notation editor for church choirs and music teams. It stores projects
+        SolfaTonic is an offline-first tonic sol-fa notation editor for church choirs and music teams. It stores projects
         on the device, supports dynamic SATB layouts, and exports printable A4 score sheets.
       </p>
       <h2 className="mt-6 text-lg font-bold">Prepared extension points</h2>

@@ -1,4 +1,4 @@
-package com.sofatonic.app;
+package com.solfatonic.app;
 
 import com.getcapacitor.BridgeActivity;
 
