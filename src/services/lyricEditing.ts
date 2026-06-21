@@ -8,6 +8,8 @@ export type LyricEditResult = {
 export type MeasureGrid = {
   slotCount: number;
   tokens: Record<VoiceKey, NotationToken[][]>;
+  cells: Record<VoiceKey, { tokens: NotationToken[]; start: number; span: number }[]>;
+  lyricSlots: { start: number; span: number }[];
 };
 
 export function insertLyricCharacter(line: LyricLine, cursor: LyricCursor, char: string): LyricEditResult {
@@ -54,17 +56,37 @@ export function backspaceLyric(line: LyricLine, cursor: LyricCursor): LyricEditR
 }
 
 export function computeMeasureGrid(measure: NotationMeasure, activeVoices: VoiceKey[]): MeasureGrid {
-  const tokens = {
-    S: tokensBySlot(measure.voices.S),
-    A: tokensBySlot(measure.voices.A),
-    T: tokensBySlot(measure.voices.T),
-    B: tokensBySlot(measure.voices.B)
+  const parsed = {
+    S: parseBeatCells(measure.voices.S),
+    A: parseBeatCells(measure.voices.A),
+    T: parseBeatCells(measure.voices.T),
+    B: parseBeatCells(measure.voices.B)
   };
-  const slotCount = Math.max(1, ...activeVoices.map((voice) => tokens[voice].length));
-  (['S', 'A', 'T', 'B'] as VoiceKey[]).forEach((voice) => {
-    while (tokens[voice].length < slotCount) tokens[voice].push([]);
-  });
-  return { slotCount, tokens };
+  const beatCount = Math.max(1, ...activeVoices.map((voice) => parsed[voice].length));
+  const beatWidths = Array.from({ length: beatCount }, (_, beatIndex) =>
+    Math.max(1, ...activeVoices.map((voice) => parsed[voice][beatIndex]?.length ?? 1))
+  );
+  const beatStarts = beatWidths.reduce<number[]>((starts, width, index) => {
+    starts[index + 1] = starts[index] + width;
+    return starts;
+  }, [1]);
+  const slotCount = beatWidths.reduce((total, width) => total + width, 0);
+  const cells = Object.fromEntries(
+    (['S', 'A', 'T', 'B'] as VoiceKey[]).map((voice) => [
+      voice,
+      parsed[voice].flatMap((beat, beatIndex) => {
+        const width = beatWidths[beatIndex] ?? 1;
+        return beat.map((tokens, subIndex) => {
+          const span = Math.max(1, Math.floor(width / beat.length));
+          const start = beatStarts[beatIndex] + Math.min(width - 1, Math.round((subIndex * width) / beat.length));
+          return { tokens, start, span: beat.length === 1 ? width : span };
+        });
+      })
+    ])
+  ) as Record<VoiceKey, { tokens: NotationToken[]; start: number; span: number }[]>;
+  const tokens = Object.fromEntries((['S', 'A', 'T', 'B'] as VoiceKey[]).map((voice) => [voice, cells[voice].map((cell) => cell.tokens)])) as Record<VoiceKey, NotationToken[][]>;
+  const lyricSlots = Array.from({ length: slotCount }, (_, slotIndex) => ({ start: slotIndex + 1, span: 1 }));
+  return { slotCount, tokens, cells, lyricSlots };
 }
 
 export function lyricTextAt(line: LyricLine, measureIndex: number, beatSlotIndex: number): string {
@@ -109,4 +131,24 @@ function tokensBySlot(tokens: NotationToken[]): NotationToken[][] {
     }
   });
   return slots;
+}
+
+function parseBeatCells(tokens: NotationToken[]): NotationToken[][][] {
+  const beats: NotationToken[][][] = [[[]]];
+  tokens.forEach((token, index) => {
+    const beat = beats[beats.length - 1];
+    const cell = beat[beat.length - 1];
+    if (token.type === 'rhythm') {
+      cell.push(token);
+      const next = tokens[index + 1];
+      if ((token.value === ':' || token.value === ':-' || token.value === '\u2223' || String(token.value) === 'âˆ£') && index < tokens.length - 1) {
+        beats.push([[]]);
+      } else if ((token.value === '.' || token.value === ',' || token.value === "'") && next?.type === 'note') {
+        beat.push([]);
+      }
+      return;
+    }
+    cell.push(token);
+  });
+  return beats.map((beat) => beat.filter((cell) => cell.length > 0)).filter((beat) => beat.length > 0);
 }

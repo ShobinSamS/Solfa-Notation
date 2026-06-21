@@ -1,5 +1,5 @@
 import type { NotationPage, VoiceKey, VoiceSelection } from '../types/project';
-import { MAX_BLOCKS_PER_PAGE } from '../data/constants';
+import { editorBlocksPerPage } from '../data/constants';
 
 export type NotationIssue = {
   index: number;
@@ -208,9 +208,10 @@ function extractBars(value: string): string[] {
   return bars;
 }
 
-export function validatePageBlockCount(page: NotationPage): NotationIssue[] {
-  if (page.blocks.length <= MAX_BLOCKS_PER_PAGE) return [];
-  return [{ index: 0, message: `An A4 page can contain a maximum of ${MAX_BLOCKS_PER_PAGE} SATB blocks.` }];
+export function validatePageBlockCount(page: NotationPage, voices?: VoiceSelection): NotationIssue[] {
+  const limit = editorBlocksPerPage(voices);
+  if (page.blocks.length <= limit) return [];
+  return [{ index: 0, message: `An A4 page can contain a maximum of ${limit} SATB blocks.` }];
 }
 
 export function validateMiddleLyrics(lines: unknown[]): NotationIssue[] {

@@ -1,7 +1,14 @@
 import type { FontTarget, VoiceKey } from '../types/project';
 
 export const APP_NAME = 'SolfaTonic';
-export const MAX_BLOCKS_PER_PAGE = 2;
+
+export function editorBlocksPerPage(voices?: Record<string, boolean>): number {
+  const activeVoices = Object.values(voices ?? {}).filter(Boolean).length || 4;
+  if (activeVoices <= 1) return 5;
+  if (activeVoices === 2) return 4;
+  if (activeVoices === 3) return 3;
+  return 2;
+}
 
 export const SCALES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -9,7 +16,21 @@ export const BEATS = ['2/4', '3/4', '4/4', '6/8', '9/8', '12/8'];
 
 export const METERS = ['CM', 'SM', 'LM', 'PM', '6.5.6.5', '6.6.8.6', '8.7.8.7', '7.6.7.6', '8.8.8.8'];
 
-export const FONT_FAMILIES = ['Inter', 'Consolas', 'Courier New', 'Georgia', 'Times New Roman', 'Arial', 'Roboto Mono', 'Noto Serif'];
+export const FONT_FAMILIES = [
+  'Inter',
+  'Consolas',
+  'Courier New',
+  'Georgia',
+  'Times New Roman',
+  'Arial',
+  'Roboto Mono',
+  'Noto Serif',
+  'Noto Serif Tamil',
+  'Noto Sans Tamil',
+  'Nirmala UI',
+  'Latha',
+  'Vijaya'
+];
 
 export const FONT_SIZE_OPTIONS: Record<FontTarget, number[]> = {
   title: [24, 28, 32, 36, 42],

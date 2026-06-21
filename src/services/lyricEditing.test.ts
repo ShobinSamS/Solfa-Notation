@@ -86,4 +86,60 @@ describe('lyric editing', () => {
     const grid = computeMeasureGrid(measure, ['S']);
     expect(grid.tokens.S.map((slot) => slot.map((token) => token.value).join(''))).toEqual(['d,', 'd,', 'd,', 'd:', 'r']);
   });
+
+  it('creates lyric slots for the densest note subdivision grid', () => {
+    const quarterBeat = (note: string, end: string = ',') => [
+      { type: 'note' as const, value: note },
+      { type: 'rhythm' as const, value: end as ',' | ':' }
+    ];
+    const measure: NotationMeasure = {
+      id: 'm',
+      voices: {
+        S: [
+          { type: 'note', value: 'd' },
+          { type: 'rhythm', value: ':' },
+          { type: 'note', value: 'r' },
+          { type: 'rhythm', value: ':' },
+          { type: 'note', value: 'm' },
+          { type: 'rhythm', value: ':' },
+          { type: 'note', value: 'f' }
+        ],
+        A: [
+          { type: 'note', value: 'd' },
+          { type: 'rhythm', value: '.' },
+          { type: 'note', value: 'd' },
+          { type: 'rhythm', value: ':' },
+          { type: 'note', value: 'r' },
+          { type: 'rhythm', value: '.' },
+          { type: 'note', value: 'r' },
+          { type: 'rhythm', value: ':' }
+        ],
+        T: [],
+        B: [
+          ...quarterBeat('d'),
+          ...quarterBeat('d'),
+          ...quarterBeat('d'),
+          ...quarterBeat('d', ':'),
+          ...quarterBeat('r'),
+          ...quarterBeat('r'),
+          ...quarterBeat('r'),
+          ...quarterBeat('r', ':'),
+          ...quarterBeat('m'),
+          ...quarterBeat('m'),
+          ...quarterBeat('m'),
+          ...quarterBeat('m', ':'),
+          ...quarterBeat('f'),
+          ...quarterBeat('f'),
+          ...quarterBeat('f'),
+          { type: 'note', value: 'f' }
+        ]
+      }
+    };
+
+    const grid = computeMeasureGrid(measure, ['S', 'A', 'B']);
+    expect(grid.slotCount).toBe(16);
+    expect(grid.lyricSlots).toHaveLength(16);
+    expect(grid.cells.S[0]).toMatchObject({ start: 1, span: 4 });
+    expect(grid.cells.B[3]).toMatchObject({ start: 4, span: 1 });
+  });
 });

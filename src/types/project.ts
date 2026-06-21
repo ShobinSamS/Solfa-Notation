@@ -69,6 +69,8 @@ export type NotationMeasure = {
   voices: Record<VoiceKey, NotationToken[]>;
   ending?: DoubleBarToken;
   trailingBar?: BarToken;
+  continuation?: boolean;
+  continues?: boolean;
 };
 
 export type NotationBlock = {

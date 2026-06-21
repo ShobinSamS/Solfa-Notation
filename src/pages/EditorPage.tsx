@@ -5,11 +5,11 @@ import { NotationPageRenderer } from '../components/NotationPageRenderer';
 import { Button } from '../components/Button';
 import { NotationToolbar } from '../components/NotationToolbar';
 import { useProjects } from '../context/ProjectContext';
-import type { ChoirProject, LyricCursor, LyricLine, MeasureCursor, NotationBlock } from '../types/project';
+import type { ChoirProject, LyricCursor, LyricLine, LyricPosition, MeasureCursor, NotationBlock } from '../types/project';
 import { validateMeterPattern, validatePageBlockCount } from '../services/notationValidation';
 import { backspaceToken } from '../services/measureEditing';
 import { insertProjectToken } from '../services/projectEditing';
-import { backspaceLyric, insertLyricCharacter } from '../services/lyricEditing';
+import { backspaceLyric, computeMeasureGrid, insertLyricCharacter } from '../services/lyricEditing';
 import { exportProjectPdf, exportProjectPng } from '../services/exportUtils';
 import { createBlock, deleteBlock, enforceFiveBlocksPerPage, moveBlock, updateProject } from '../utils/projectModel';
 import { useDebouncedEffect } from '../hooks/useDebouncedEffect';
@@ -35,13 +35,14 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
   const [pageZoom, setPageZoom] = useState(1);
   const exportRef = useRef<HTMLDivElement>(null);
   const mobileLyricInputRef = useRef<HTMLInputElement>(null);
+  const composingLyricRef = useRef(false);
 
   const projectWarnings = useMemo(() => {
     const warnings: string[] = [];
     if (!project.title.trim()) warnings.push('Missing title.');
     if (!project.scale.trim()) warnings.push('Missing scale.');
     if (project.metadata.meterMode === 'meter' && !validateMeterPattern(project.metadata.meter ?? '')) warnings.push('Invalid meter format.');
-    project.pages.forEach((page) => validatePageBlockCount(page).forEach((issue) => warnings.push(issue.message)));
+    project.pages.forEach((page) => validatePageBlockCount(page, project.voices).forEach((issue) => warnings.push(issue.message)));
     return warnings;
   }, [project]);
 
@@ -116,12 +117,22 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
 
   const editActiveLyric = (edit: (line: LyricLine, cursor: LyricCursor) => { line: LyricLine; cursor: LyricCursor }) => {
     if (!activeLyricCursor) return;
-    patchBlock(activeLyricCursor.blockId, (block) => {
-      const line = block.lyricLines.find((item) => item.id === activeLyricCursor.lyricLineId);
-      if (!line) return block;
-      const result = edit(line, activeLyricCursor);
-      setActiveLyricCursor(result.cursor);
-      return { ...block, lyricLines: block.lyricLines.map((item) => (item.id === line.id ? result.line : item)) };
+    setProject((current) => {
+      let editedCursor = activeLyricCursor;
+      const pages = current.pages.map((page) => ({
+        ...page,
+        blocks: page.blocks.map((block) => {
+          if (block.id !== activeLyricCursor.blockId) return block;
+          const line = block.lyricLines.find((item) => item.id === activeLyricCursor.lyricLineId);
+          if (!line) return block;
+          const result = edit(line, activeLyricCursor);
+          editedCursor = result.cursor;
+          return { ...block, lyricLines: block.lyricLines.map((item) => (item.id === line.id ? result.line : item)) };
+        })
+      }));
+      const nextProject = { ...current, pages };
+      setActiveLyricCursor(normalizeLyricCursor(nextProject, editedCursor));
+      return nextProject;
     });
   };
 
@@ -167,6 +178,52 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
     }));
   };
 
+  const addLyricLineToContinuation = (blockId: string, position: LyricPosition) => {
+    const line: LyricLine = { id: `lyric-${Date.now()}`, position, text: '', slots: [] };
+    setProject((current) => {
+      const flat = current.pages.flatMap((page, pageIndex) => page.blocks.map((block, blockIndex) => ({ block, pageIndex, blockIndex })));
+      const activeIndex = flat.findIndex((item) => item.block.id === blockId);
+      if (activeIndex < 0) return current;
+      let start = activeIndex;
+      while (start > 0 && flat[start].block.measures[0]?.continuation) start -= 1;
+      let end = activeIndex;
+      while (end < flat.length - 1 && flat[end].block.measures[flat[end].block.measures.length - 1]?.continues) end += 1;
+      const targetIds = new Set(flat.slice(start, end + 1).map((item) => item.block.id));
+      return {
+        ...current,
+        pages: current.pages.map((page) => ({
+          ...page,
+          blocks: page.blocks.map((block) => {
+            if (!targetIds.has(block.id)) return block;
+            const samePosition = block.lyricLines.filter((item) => item.position === position);
+            if ((position === 'top' || position === 'bottom') && samePosition.length > 0) return block;
+            if (position === 'middle' && samePosition.length >= 6) return block;
+            return { ...block, lyricLines: [...block.lyricLines, line] };
+          })
+        }))
+      };
+    });
+  };
+
+  const normalizeLyricCursor = (nextProject: ChoirProject, cursor: LyricCursor): LyricCursor => {
+    const voices = (['S', 'A', 'T', 'B'] as const).filter((voice) => nextProject.voices[voice]);
+    const flat = nextProject.pages.flatMap((page) => page.blocks);
+    const blockIndex = flat.findIndex((block) => block.id === cursor.blockId);
+    const block = flat[blockIndex];
+    const measure = block?.measures[cursor.measureIndex];
+    if (!block || !measure) return cursor;
+    const slotCount = computeMeasureGrid(measure, voices).lyricSlots.length;
+    if (cursor.beatSlotIndex < slotCount) return cursor;
+
+    const nextMeasure = block.measures[cursor.measureIndex + 1];
+    if (nextMeasure) return { ...cursor, measureIndex: cursor.measureIndex + 1, beatSlotIndex: 0, charOffset: 0 };
+    const nextBlock = flat[blockIndex + 1];
+    if (measure.continues && nextBlock?.measures[0]?.continuation) {
+      return { ...cursor, blockId: nextBlock.id, measureIndex: 0, beatSlotIndex: 0, charOffset: 0 };
+    }
+    return { ...cursor, beatSlotIndex: Math.max(0, slotCount - 1), charOffset: 0 };
+  };
+
   const pages = exportRef.current ? Array.from(exportRef.current.querySelectorAll<HTMLElement>('[data-export-page]')) : [];
   useEffect(() => {
     if (activeInputType !== 'lyric' || !activeLyricCursor || previewMode) return;
@@ -195,9 +252,7 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
     }
   };
 
-  const handleMobileLyricInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.currentTarget.value;
-    event.currentTarget.value = '';
+  const insertLyricText = (value: string) => {
     if (!value || activeInputType !== 'lyric' || !activeLyricCursor) return;
     editActiveLyric((line, cursor) => {
       let nextLine = line;
@@ -211,6 +266,13 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
     });
   };
 
+  const handleMobileLyricInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (composingLyricRef.current) return;
+    const value = event.currentTarget.value;
+    event.currentTarget.value = '';
+    insertLyricText(value);
+  };
+
   return (
     <div className={`editor-shell ${previewMode ? 'print-preview-mode' : ''}`} onKeyDown={handleEditorKeyDown}>
       <input
@@ -221,6 +283,15 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
         autoCorrect="on"
         inputMode="text"
         onChange={handleMobileLyricInput}
+        onCompositionStart={() => {
+          composingLyricRef.current = true;
+        }}
+        onCompositionEnd={(event) => {
+          composingLyricRef.current = false;
+          const value = event.currentTarget.value;
+          event.currentTarget.value = '';
+          insertLyricText(value);
+        }}
         onKeyDown={(event) => {
           if (activeInputType !== 'lyric' || !activeLyricCursor) return;
           if (event.key === 'Backspace') {
@@ -322,22 +393,25 @@ export function EditorPage({ project: initialProject, onBack }: Props) {
                 onChangeBlock={updateBlock}
                 onMoveBlock={handleMoveBlock}
                 onDeleteBlock={handleDeleteBlock}
-                onAddTopLyric={(blockId) => patchBlock(blockId, (block) => ({ ...block, lyricLines: [...block.lyricLines, { id: `lyric-${Date.now()}`, position: 'top', text: '', slots: [] }] }))}
-                onAddMiddleLyric={(blockId) =>
-                  patchBlock(blockId, (block) =>
-                    block.lyricLines.filter((line) => line.position === 'middle').length < 6
-                      ? { ...block, lyricLines: [...block.lyricLines, { id: `lyric-${Date.now()}`, position: 'middle', text: '', slots: [] }] }
-                      : block
-                  )
-                }
-                onAddBottomLyric={(blockId) => patchBlock(blockId, (block) => ({ ...block, lyricLines: [...block.lyricLines, { id: `lyric-${Date.now()}`, position: 'bottom', text: '', slots: [] }] }))}
+                onAddTopLyric={(blockId) => addLyricLineToContinuation(blockId, 'top')}
+                onAddMiddleLyric={(blockId) => addLyricLineToContinuation(blockId, 'middle')}
+                onAddBottomLyric={(blockId) => addLyricLineToContinuation(blockId, 'bottom')}
                 onDeleteLyricLine={(blockId, lineId) =>
                   patchBlock(blockId, (block) => ({ ...block, lyricLines: block.lyricLines.filter((line) => line.id !== lineId) }))
                 }
                 onChangeLyricLine={(blockId, line, cursor) => {
-                  setActiveLyricCursor(cursor);
                   setActiveInputType('lyric');
-                  patchBlock(blockId, (block) => ({ ...block, lyricLines: block.lyricLines.map((item) => (item.id === line.id ? line : item)) }));
+                  setProject((current) => {
+                    const nextProject = {
+                      ...current,
+                      pages: current.pages.map((page) => ({
+                        ...page,
+                        blocks: page.blocks.map((block) => (block.id === blockId ? { ...block, lyricLines: block.lyricLines.map((item) => (item.id === line.id ? line : item)) } : block))
+                      }))
+                    };
+                    setActiveLyricCursor(normalizeLyricCursor(nextProject, cursor));
+                    return nextProject;
+                  });
                 }}
               />
             ))}

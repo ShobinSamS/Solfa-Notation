@@ -1,4 +1,5 @@
 import { GripVertical, MoveDown, MoveUp, Plus, Trash2 } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import type { ChoirProject, LyricCursor, LyricLine, MeasureCursor, NotationBlock, VoiceKey, VoiceSelection } from '../types/project';
 import { measureWarnings, tokenText, trimMeasuresAfterEnding } from '../services/measureEditing';
 import { backspaceLyric, computeMeasureGrid, insertLyricCharacter, lyricTextAt } from '../services/lyricEditing';
@@ -32,6 +33,22 @@ export type A4BlockEditorProps = {
 };
 
 const voiceOrder: VoiceKey[] = ['S', 'A', 'T', 'B'];
+
+function fitScale(length: number, span = 1): number {
+  const capacity = Math.max(1, span) * 2.5;
+  if (length <= capacity) return 1;
+  if (length <= capacity * 1.5) return 0.84;
+  if (length <= capacity * 2) return 0.68;
+  if (length <= capacity * 3) return 0.48;
+  return 0.3;
+}
+
+function measureBasis(block: NotationBlock, measureIndex: number, enabledVoices: VoiceKey[]): string {
+  const measure = block.measures[measureIndex];
+  if (!measure) return '25%';
+  const grid = computeMeasureGrid(measure, enabledVoices);
+  return `${Math.max(1, grid.slotCount) / 16 * 100}%`;
+}
 
 export function A4BlockEditor({
   block,
@@ -124,6 +141,7 @@ export function A4BlockEditor({
               block={block}
               voice={voice}
               styles={styles}
+              enabledVoices={enabled}
               mode={mode}
               activeCursor={activeCursor}
               onFocusCursor={onFocusCursor}
@@ -159,6 +177,7 @@ export function A4BlockEditor({
               block={block}
               voice={voice}
               styles={styles}
+              enabledVoices={enabled}
               mode={mode}
               activeCursor={activeCursor}
               onFocusCursor={onFocusCursor}
@@ -197,6 +216,7 @@ function MeasureVoiceRow({
   block,
   voice,
   styles,
+  enabledVoices,
   mode,
   activeCursor,
   onFocusCursor
@@ -204,6 +224,7 @@ function MeasureVoiceRow({
   block: NotationBlock;
   voice: VoiceKey;
   styles: ChoirProject['styles'];
+  enabledVoices: VoiceKey[];
   mode: NotationMode;
   activeCursor: MeasureCursor | null;
   onFocusCursor: (cursor: MeasureCursor) => void;
@@ -220,20 +241,30 @@ function MeasureVoiceRow({
           const tokens = measure.voices[voice];
           const grid = computeMeasureGrid(measure, ['S', 'A', 'T', 'B']);
           const active = isEditMode && activeCursor?.blockId === block.id && activeCursor.measureIndex === measureIndex && activeCursor.voice === voice;
+          const basis = measureBasis(block, measureIndex, enabledVoices);
           return (
             <button
               key={measure.id}
               type="button"
               className={`measure-cell ${active ? 'measure-cell-active' : ''}`}
+              style={{ flex: `0 0 ${basis}`, maxWidth: basis }}
               onClick={() => {
                 if (isEditMode) onFocusCursor({ blockId: block.id, measureIndex, voice, tokenIndex: tokens.length });
               }}
             >
-              <span className="barline">|</span>
+              {!measure.continuation && <span className="barline">|</span>}
               <span className="measure-slot-grid" style={{ gridTemplateColumns: `repeat(${grid.slotCount}, minmax(0, 1fr))` }}>
-                {grid.tokens[voice].map((slot, slotIndex) => (
-                  <span key={slotIndex} className={slot.some((token) => token.type === 'note' && (token.underlined || token.grouped)) ? 'notation-row-underlined' : ''}>
-                    {slot.map((token, tokenIndex) => (
+                {grid.cells[voice].map((cell, slotIndex) => (
+                  <span
+                    key={slotIndex}
+                    className={cell.tokens.some((token) => token.type === 'note' && (token.underlined || token.grouped)) ? 'notation-row-underlined' : ''}
+                    style={{
+                      gridColumn: `${cell.start} / span ${cell.span}`,
+                      textAlign: cell.span > 1 ? 'center' : 'left',
+                      fontSize: `${fitScale(cell.tokens.map(tokenText).join('').length, cell.span)}em`
+                    }}
+                  >
+                    {cell.tokens.map((token, tokenIndex) => (
                       <span key={`${token.id ?? tokenText(token)}-${tokenIndex}`}>
                         {tokenText(token)}
                       </span>
@@ -246,7 +277,7 @@ function MeasureVoiceRow({
             </button>
           );
         })}
-        {!lastVisibleMeasure?.ending && <span className="barline">|</span>}
+        {!lastVisibleMeasure?.ending && !lastVisibleMeasure?.continues && <span className="barline">|</span>}
       </div>
     </div>
   );
@@ -295,13 +326,25 @@ function LyricGridLine({
       <div className="lyric-system-grid">
         {visibleMeasures.map((measure, measureIndex) => {
           const grid = computeMeasureGrid(measure, enabledVoices);
+          const basis = measureBasis(block, measureIndex, enabledVoices);
+          const hasLeadingBar = !measure.continuation;
           return (
-            <div key={`${line.id}-${measure.id}`} className="lyric-measure" style={{ gridTemplateColumns: `auto repeat(${grid.slotCount}, minmax(0, 1fr))` }}>
-              <span className="barline">|</span>
-              {Array.from({ length: grid.slotCount }, (_, beatSlotIndex) => {
+            <div
+              key={`${line.id}-${measure.id}`}
+              className="lyric-measure"
+              style={{
+                flex: `0 0 ${basis}`,
+                maxWidth: basis,
+                gridTemplateColumns: `${hasLeadingBar ? 'auto ' : ''}repeat(${grid.slotCount}, minmax(0, 1fr))`
+              }}
+            >
+              {hasLeadingBar && <span className="barline">|</span>}
+              {grid.lyricSlots.map((lyricSlot, beatSlotIndex) => {
                 const text = lyricTextAt(line, measureIndex, beatSlotIndex);
+                const scale = fitScale(text.length, lyricSlot.span);
                 const active =
                   isEditMode &&
+                  activeLyricCursor?.blockId === block.id &&
                   activeLyricCursor?.lyricLineId === line.id &&
                   activeLyricCursor.measureIndex === measureIndex &&
                   activeLyricCursor.beatSlotIndex === beatSlotIndex;
@@ -317,6 +360,12 @@ function LyricGridLine({
                     key={beatSlotIndex}
                     type="button"
                     className={`lyric-slot ${active ? 'editable-a4-line-active' : ''}`}
+                    style={{
+                      gridColumn: `${lyricSlot.start + (hasLeadingBar ? 1 : 0)} / span ${lyricSlot.span}`,
+                      textAlign: 'center',
+                      fontSize: `${scale}em`,
+                      '--slot-fit-scale': scale
+                    } as CSSProperties}
                     aria-label={text ? `Lyric slot ${beatSlotIndex + 1}: ${text}` : `Empty lyric slot ${beatSlotIndex + 1}`}
                     onClick={() => {
                       if (isEditMode) onFocusLyricCursor(cursor);

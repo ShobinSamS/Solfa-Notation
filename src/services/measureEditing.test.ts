@@ -306,6 +306,7 @@ describe('measure editing', () => {
       expect(result.rejected).not.toBe(true);
     });
 
+    expect(result.project.pages[0].blocks).toHaveLength(1);
     expect(result.cursor.blockId).toBe('block');
     expect(result.cursor.measureIndex).toBe(0);
     expect(values(result.project.pages[0].blocks[0].measures[0].voices.S)).toEqual(sequence);
@@ -320,8 +321,51 @@ describe('measure editing', () => {
       expect(result.rejected).not.toBe(true);
     });
 
+    expect(result.project.pages[0].blocks).toHaveLength(1);
     expect(result.cursor.blockId).toBe('block');
     expect(result.cursor.measureIndex).toBe(0);
     expect(values(result.project.pages[0].blocks[0].measures[0].voices.S)).toEqual(sequence);
+  });
+
+  it('moves a dense measure to the next block instead of wrapping inside the same block', () => {
+    const firstMeasureBlock: NotationBlock = {
+      ...emptyBlock(),
+      measures: [
+        {
+          id: 'm1',
+          voices: {
+            S: [
+              { type: 'note', value: 'd' },
+              { type: 'rhythm', value: ':' },
+              { type: 'note', value: 'r' },
+              { type: 'rhythm', value: ':' },
+              { type: 'note', value: 'm' },
+              { type: 'rhythm', value: ':' },
+              { type: 'note', value: 'f' }
+            ],
+            A: [],
+            T: [],
+            B: []
+          }
+        },
+        { id: 'm2', voices: { S: [], A: [], T: [], B: [] } }
+      ]
+    };
+    const sequence = ['d', ',', 'd', ',', 'd', ',', 'd', ':', 'r', ',', 'r', ',', 'r', ',', 'r', ':', 'm', ',', 'm', ',', 'm', ',', 'm', ':', 'f', ',', 'f', ',', 'f', ',', 'f'];
+    let result = insertProjectToken(projectWithBlocks([firstMeasureBlock]), { blockId: 'block', measureIndex: 1, voice: 'B', tokenIndex: 0 }, sequence[0], false);
+
+    sequence.slice(1).forEach((token) => {
+      result = insertProjectToken(result.project, result.cursor, token, false);
+      expect(result.rejected).not.toBe(true);
+    });
+
+    expect(result.project.pages[0].blocks).toHaveLength(2);
+    expect(result.project.pages[0].blocks[0].measures).toHaveLength(2);
+    expect(result.cursor.blockId).toBe(result.project.pages[0].blocks[1].id);
+    expect(result.cursor.measureIndex).toBe(0);
+    expect(result.project.pages[0].blocks[0].measures[1].continues).toBe(true);
+    expect(result.project.pages[0].blocks[1].measures[0].continuation).toBe(true);
+    expect(values(result.project.pages[0].blocks[0].measures[1].voices.B)).toEqual(sequence.slice(0, 24));
+    expect(values(result.project.pages[0].blocks[1].measures[0].voices.B)).toEqual(sequence.slice(24));
   });
 });

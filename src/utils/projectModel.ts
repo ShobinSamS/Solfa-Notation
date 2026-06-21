@@ -11,7 +11,7 @@ import type {
 } from '../types/project';
 import { parseNotationTokens } from '../services/notationValidation';
 import { makeNotationToken } from '../services/measureEditing';
-import { MAX_BLOCKS_PER_PAGE } from '../data/constants';
+import { editorBlocksPerPage } from '../data/constants';
 
 export const defaultVoices: VoiceSelection = { S: true, A: true, T: true, B: true };
 
@@ -71,7 +71,7 @@ export function createProject(draft: ProjectDraft): ChoirProject {
       meter: draft.metadata?.meter ?? '',
       exportTitleSize: draft.metadata?.exportTitleSize ?? defaultStyles.title.size,
       exportNotesSize: draft.metadata?.exportNotesSize ?? 18,
-      exportLyricsSize: draft.metadata?.exportLyricsSize ?? 14
+      exportLyricsSize: draft.metadata?.exportLyricsSize ?? draft.metadata?.exportNotesSize ?? 18
     },
     styles: {
       ...defaultStyles,
@@ -101,11 +101,12 @@ export function getVoiceLayout(voices: VoiceSelection): VoiceKey[][] {
 
 export function enforceFiveBlocksPerPage(project: ChoirProject): ChoirProject {
   const pages: NotationPage[] = [];
+  const blocksPerPage = editorBlocksPerPage(project.voices);
   project.pages.forEach((page) => {
-    for (let index = 0; index < page.blocks.length; index += MAX_BLOCKS_PER_PAGE) {
+    for (let index = 0; index < page.blocks.length; index += blocksPerPage) {
       pages.push({
         id: index === 0 ? page.id : createId('page'),
-        blocks: page.blocks.slice(index, index + MAX_BLOCKS_PER_PAGE)
+        blocks: page.blocks.slice(index, index + blocksPerPage)
       });
     }
   });

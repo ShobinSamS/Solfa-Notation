@@ -221,7 +221,7 @@ export function ProjectForm({ existing, onCancel, onSaved }: Props) {
             </label>
           </div>
 
-          <div className="grid gap-2 md:col-span-2 md:grid-cols-3">
+          <div className="grid gap-2 md:col-span-2 md:grid-cols-2">
             <label className="space-y-2">
               <span className="field-label">PDF/PNG title px</span>
               <input
@@ -237,7 +237,7 @@ export function ProjectForm({ existing, onCancel, onSaved }: Props) {
               />
             </label>
             <label className="space-y-2">
-              <span className="field-label">PDF/PNG notes px</span>
+              <span className="field-label">PDF/PNG notes, symbols, lyrics px</span>
               <input
                 className="form-field text-right"
                 type="number"
@@ -246,21 +246,14 @@ export function ProjectForm({ existing, onCancel, onSaved }: Props) {
                 step="1"
                 value={project.metadata.exportNotesSize ?? 18}
                 onChange={(event) =>
-                  setProject({ ...project, metadata: { ...project.metadata, exportNotesSize: Number(event.target.value) } })
-                }
-              />
-            </label>
-            <label className="space-y-2">
-              <span className="field-label">PDF/PNG lyrics px</span>
-              <input
-                className="form-field text-right"
-                type="number"
-                min="10"
-                max="20"
-                step="1"
-                value={project.metadata.exportLyricsSize ?? 14}
-                onChange={(event) =>
-                  setProject({ ...project, metadata: { ...project.metadata, exportLyricsSize: Number(event.target.value) } })
+                  setProject({
+                    ...project,
+                    metadata: {
+                      ...project.metadata,
+                      exportNotesSize: Number(event.target.value),
+                      exportLyricsSize: Number(event.target.value)
+                    }
+                  })
                 }
               />
             </label>

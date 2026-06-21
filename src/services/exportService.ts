@@ -23,7 +23,15 @@ async function capturePage(page: HTMLElement, pixelRatio: number): Promise<strin
   }
 }
 
-function createMergedExportPages(pages: HTMLElement[]): { pages: HTMLElement[]; cleanup: () => void } {
+function exportBlockCapacity(project: ChoirProject): number {
+  const activeVoices = Object.values(project.voices).filter(Boolean).length;
+  if (activeVoices <= 1) return 8;
+  if (activeVoices === 2) return 6;
+  if (activeVoices === 3) return 5;
+  return 4;
+}
+
+function createMergedExportPages(project: ChoirProject, pages: HTMLElement[]): { pages: HTMLElement[]; cleanup: () => void } {
   const host = document.createElement('div');
   host.style.position = 'fixed';
   host.style.left = '-10000px';
@@ -31,14 +39,17 @@ function createMergedExportPages(pages: HTMLElement[]): { pages: HTMLElement[]; 
   host.style.background = '#fff';
   document.body.appendChild(host);
 
+  const capacity = exportBlockCapacity(project);
+  const blocks = pages.flatMap((page) => Array.from(page.querySelectorAll('.satb-block')));
   const merged: HTMLElement[] = [];
-  for (let index = 0; index < pages.length; index += 2) {
-    const page = pages[index].cloneNode(true) as HTMLElement;
+  for (let index = 0; index < blocks.length; index += capacity) {
+    const sourcePage = pages[Math.min(Math.floor(index / 2), pages.length - 1)];
+    const page = sourcePage.cloneNode(true) as HTMLElement;
     const targetStack = page.querySelector('.a4-block-stack');
-    const nextStack = pages[index + 1]?.querySelector('.a4-block-stack');
-    nextStack?.querySelectorAll('.satb-block').forEach((block) => {
-      targetStack?.appendChild(block.cloneNode(true));
-    });
+    if (targetStack) {
+      targetStack.innerHTML = '';
+      blocks.slice(index, index + capacity).forEach((block) => targetStack.appendChild(block.cloneNode(true)));
+    }
     host.appendChild(page);
     merged.push(page);
   }
@@ -80,7 +91,7 @@ export async function exportProjectPdf(project: ChoirProject, pages: HTMLElement
     throw new Error('No notation pages are available for PDF export.');
   }
 
-  const exportDom = createMergedExportPages(pages);
+  const exportDom = createMergedExportPages(project, pages);
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
   try {
     for (let index = 0; index < exportDom.pages.length; index += 1) {
@@ -105,7 +116,7 @@ export async function exportProjectPng(project: ChoirProject, pages: HTMLElement
     throw new Error('No notation pages are available for PNG export.');
   }
 
-  const exportDom = createMergedExportPages(pages);
+  const exportDom = createMergedExportPages(project, pages);
   try {
     for (let index = 0; index < exportDom.pages.length; index += 1) {
       const image = await capturePage(exportDom.pages[index], 3);

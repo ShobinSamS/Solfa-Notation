@@ -56,7 +56,7 @@
     padding: 16mm;
     box-shadow: 0 18px 60px rgba(15, 23, 42, 0.16);
     border: 1px solid #e2e8f0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .a4-header {
@@ -193,12 +193,14 @@
 
   .measure-row {
     display: flex;
+    flex-wrap: nowrap;
     width: 100%;
     min-height: 30px;
     padding: 4px 8px;
     font-family: Consolas, 'Courier New', monospace;
     white-space: nowrap;
     overflow: hidden;
+    row-gap: 0.15rem;
   }
 
   .measure-cell {
@@ -221,13 +223,13 @@
     display: grid;
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     column-gap: 0.05rem;
   }
 
   .measure-slot-grid > span {
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     text-overflow: clip;
   }
 
@@ -263,6 +265,7 @@
     padding: 0.05rem 0 0.05rem 1.5rem;
     text-align: left;
     overflow: hidden;
+    font-size: 0.82em;
   }
 
   .delete-lyric-line {
@@ -281,10 +284,12 @@
 
   .lyric-system-grid {
     display: flex;
+    flex-wrap: nowrap;
     width: 100%;
     min-width: 0;
     overflow: hidden;
     padding: 0 8px;
+    row-gap: 0.1rem;
   }
 
   .lyric-measure {
@@ -303,9 +308,11 @@
     font: inherit;
     letter-spacing: 0;
     overflow: hidden;
-    padding: 0 0.1rem;
+    padding: 0 0.04rem;
     text-align: left;
     white-space: nowrap;
+    position: relative;
+    z-index: 1;
   }
 
   .lyric-top-row,
@@ -368,19 +375,30 @@
   body.exporting-score .measure-row {
     min-height: 34px !important;
     font-size: var(--export-notes-font-size, 18px) !important;
+    font-family: 'Noto Serif Tamil', 'Nirmala UI', Latha, Vijaya, 'Times New Roman', Times, serif !important;
     line-height: 1.35 !important;
   }
 
   body.exporting-score .lyric-grid-line,
   body.exporting-score .lyric-slot {
     min-height: 24px !important;
-    font-size: var(--export-lyrics-font-size, 14px) !important;
+    font-family: 'Noto Serif Tamil', 'Nirmala UI', Latha, Vijaya, 'Times New Roman', Times, serif !important;
     line-height: 1.25 !important;
+    overflow: hidden !important;
+  }
+
+  body.exporting-score .lyric-grid-line {
+    font-size: calc(var(--export-lyrics-font-size, 14px) * 0.82) !important;
+  }
+
+  body.exporting-score .lyric-slot {
+    font-size: calc(var(--export-lyrics-font-size, 14px) * var(--slot-fit-scale, 1) * 0.82) !important;
   }
 
   body.exporting-score .barline,
   body.exporting-score .double-bar {
     font-size: var(--export-notes-font-size, 18px) !important;
+    font-family: 'Noto Serif Tamil', 'Nirmala UI', Latha, Vijaya, 'Times New Roman', Times, serif !important;
     line-height: 1.2 !important;
   }
 
@@ -555,10 +573,10 @@
     .editor-grid .notation-toolbar {
       order: 2;
       position: static;
-      height: min(46dvh, 17.5rem);
-      max-height: min(46dvh, 17.5rem);
+      height: min(50dvh, 19.5rem);
+      max-height: min(50dvh, 19.5rem);
       overflow: hidden;
-      padding: 0.35rem 0.35rem max(1.2rem, env(safe-area-inset-bottom));
+      padding: 0.45rem 0.45rem max(1.25rem, env(safe-area-inset-bottom));
       border-radius: 0;
     }
 
@@ -566,7 +584,7 @@
       display: grid;
       grid-template-columns: 1fr;
       grid-template-rows: auto auto auto auto auto;
-      gap: 0.28rem;
+      gap: 0.34rem;
       align-items: start;
       height: 100%;
     }
@@ -579,58 +597,58 @@
     }
 
     .notation-toolbar button {
-      min-height: 1.48rem;
+      min-height: 1.72rem;
       padding: 0.04rem 0.12rem;
-      font-size: 1rem;
+      font-size: 1.08rem;
       border-radius: 0.48rem;
     }
 
     .notation-toolbar .toolbar-actions button {
-      min-height: 1.35rem;
-      font-size: 1rem;
+      min-height: 1.65rem;
+      font-size: 1.05rem;
     }
 
     .notation-toolbar .grid {
-      gap: 0.1rem;
+      gap: 0.18rem;
     }
 
     .notation-toolbar .symbol-buttons {
       display: grid !important;
       grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
-      gap: 0.1rem !important;
+      gap: 0.2rem !important;
       width: 100%;
     }
 
     .notation-toolbar .note-buttons {
       display: grid !important;
-      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-      gap: 0.16rem !important;
+      grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+      gap: 0.22rem !important;
       width: 100%;
     }
 
     .notation-toolbar .octave-buttons {
       display: grid !important;
       grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-      gap: 0.1rem !important;
+      gap: 0.2rem !important;
       width: 100%;
     }
 
     .notation-toolbar .symbol-buttons button,
     .notation-toolbar .octave-buttons button {
       min-width: 0;
-      min-height: 1rem;
+      min-height: 1.25rem;
       padding-top: 0.01rem;
       padding-left: 0.03rem;
       padding-right: 0.03rem;
-      font-size: 0.99rem;
+      font-size: 1.05rem;
       line-height: 1;
     }
 
     .notation-toolbar .note-buttons button {
       min-width: 0;
-      min-height: 1.45rem;
+      min-height: 1.65rem;
       padding: 0.08rem 0.06rem;
-      font-size: 1.08rem;
+      font-size: 1.12rem;
       line-height: 1;
     }
 
@@ -725,13 +743,13 @@
     .measure-row {
       min-height: 1.45rem;
       padding: 0.16rem 0.2rem;
-      font-size: clamp(0.82rem, 3.25vw, 1.08rem) !important;
+      font-size: clamp(0.95rem, 3.6vw, 1.24rem) !important;
     }
 
     .lyric-grid-line {
       min-height: 1.1rem;
       padding-left: 1rem;
-      font-size: clamp(0.7rem, 2.75vw, 0.94rem) !important;
+      font-size: clamp(0.86rem, 3.2vw, 1.08rem) !important;
     }
 
     .lyric-system-grid {

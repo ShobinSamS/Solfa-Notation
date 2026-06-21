@@ -2,7 +2,7 @@ import type React from 'react';
 import type { ChoirProject, LyricCursor, LyricLine, MeasureCursor, NotationBlock as ProjectNotationBlock, NotationPage } from '../types/project';
 import { NotationBlock } from './NotationBlock';
 import type { NotationMode } from './A4BlockEditor';
-import { MAX_BLOCKS_PER_PAGE } from '../data/constants';
+import { editorBlocksPerPage } from '../data/constants';
 
 type Props = {
   project: ChoirProject;
@@ -44,8 +44,9 @@ export function NotationPageRenderer({
   const exportSizing = {
     '--export-title-font-size': `${project.metadata.exportTitleSize ?? project.styles.title.size}px`,
     '--export-notes-font-size': `${project.metadata.exportNotesSize ?? 18}px`,
-    '--export-lyrics-font-size': `${project.metadata.exportLyricsSize ?? 14}px`
+    '--export-lyrics-font-size': `${project.metadata.exportNotesSize ?? project.metadata.exportLyricsSize ?? 18}px`
   } as React.CSSProperties;
+  const blocksPerPage = editorBlocksPerPage(project.voices);
 
   return (
     <section className={`a4-page a4-page-${mode}`} data-export-page data-page-number={pageNumber} style={exportSizing}>
@@ -76,11 +77,11 @@ export function NotationPageRenderer({
       </header>
 
       <div className="a4-block-stack">
-        {page.blocks.slice(0, MAX_BLOCKS_PER_PAGE).map((block, index) => (
+        {page.blocks.slice(0, blocksPerPage).map((block, index) => (
           <NotationBlock
             key={block.id}
             block={block}
-            blockNumber={(pageNumber - 1) * MAX_BLOCKS_PER_PAGE + index + 1}
+            blockNumber={(pageNumber - 1) * blocksPerPage + index + 1}
             enabledVoices={project.voices}
             styles={project.styles}
             beat={project.metadata.beat ?? '4/4'}
